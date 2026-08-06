@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { configuration, validate } from './infrastructure/config';
+import { LoggerModule } from './infrastructure/logger';
+
 
 /**
  * Módulo raíz de la aplicación.
@@ -15,6 +17,9 @@ import { configuration, validate } from './infrastructure/config';
       load: [configuration], // Inyecta el objeto de configuración base.
       validate,              // Ejecuta la validación estricta (fail-fast) en el arranque.
     }),
+
+
+    LoggerModule,
   ],
  
 })
