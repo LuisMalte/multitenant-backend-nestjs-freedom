@@ -1,36 +1,49 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
-import { PinoLogger } from 'nestjs-pino';
+import { Logger } from 'nestjs-pino';
+
 /**
  * Punto de entrada principal (bootstrap) de la aplicación.
- * Inicializa el framework, extrae las variables de configuración y levanta el servidor HTTP.
+ * Orquesta la inicialización del framework, inyecta la configuración, 
+ * unifica el sistema de logs y levanta el servidor HTTP.
  */
 async function bootstrap() {
-  // Instancia el contenedor principal a partir del módulo raíz.
-  const app = await NestFactory.create(AppModule);
-  // Extrae el servicio de configuración del contenedor de dependencias.
+  // Construye el contexto de la aplicación instanciando el módulo raíz.
+  // Retiene logs iniciales hasta activar Pino
+  const app = await NestFactory.create(AppModule, {
+    bufferLogs: true,
+  });
+  
+  // Extrae servicios globales desde el contenedor de Inyección de Dependencias (DI).
   const configService = app.get(ConfigService);
 
-  const logger = app.get('PinoLogger');
+  // Redirige todo el logging a Pino
+  const logger = app.get(Logger);
 
-  // Recupera las variables críticas. Falla de forma inmediata si no existen.
+  // Recupera variables críticas (fail-fast: aborta si no existen).
   const appName = configService.getOrThrow<string>('app.name');
   const port = configService.getOrThrow<number>('app.port');
-  const environment =configService.getOrThrow<string>('app.environment');
+  const environment = configService.getOrThrow<string>('app.environment');
 
+
+  // Sobrescribe el logger nativo de NestJS para delegar todo 
+  // el registro de eventos a la implementación unificada de Pino.
   app.useLogger(logger);
 
-// Abre el puerto de red y espera la confirmación del sistema operativo.
+  // Inicializa el servidor HTTP y bloquea hasta que el puerto de red esté abierto.
   await app.listen(port);
 
-// Reporta la telemetría inicial en la salida estándar.
-  logger.info({
+  // Reporta el estado de arranque emitiendo telemetría estructurada.
+  logger.log(
+  {
     app: appName,
     environment,
+    port,
     url: `http://localhost:${port}`,
-  });
+  },
+  'Application started successfully',
+);
 }
+
 bootstrap();
-
-
