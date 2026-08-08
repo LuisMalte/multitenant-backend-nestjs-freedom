@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: courtreserve-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: ${MASTER_DATABASE_NAME}
+      POSTGRES_USER: ${MASTER_DATABASE_USER}
+      POSTGRES_PASSWORD: ${MASTER_DATABASE_PASSWORD}
+
+    ports:
+      - "${MASTER_DATABASE_PORT}:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql
+volumes:
+  postgres_data:
