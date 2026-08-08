@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "outDir": "../dist-poc"
+  },
+  "include": [
+    "./prisma-multitenant.ts",
+    "../generated/prisma/**/*.ts"
+  ]
+}
