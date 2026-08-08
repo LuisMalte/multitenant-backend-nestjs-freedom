@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { configuration, validate } from './infrastructure/config';
 import { LoggerModule } from './infrastructure/logger';
 import { FilterModule } from './common/filters';
+import { DatabaseModule } from './infrastructure/database';
 
 /**
  * Módulo raíz de la aplicación.
@@ -21,6 +22,7 @@ import { FilterModule } from './common/filters';
 
     LoggerModule,
     FilterModule,
+    DatabaseModule,
   ],
  
 })
