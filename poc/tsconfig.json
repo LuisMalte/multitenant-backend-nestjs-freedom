@@ -9,6 +9,9 @@
   },
   "include": [
     "./prisma-multitenant.ts",
-    "../generated/prisma/**/*.ts"
+    "./master-tenant.ts",
+    "./master-to-tenant.ts",
+    "../generated/prisma/**/*.ts",
+    "../src/infrastructure/database/tenant-connection.manager.ts"
   ]
 }

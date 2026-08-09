@@ -15,15 +15,16 @@ datasource db {
 }
               
 model Tenant {
-  id               String   @id @default(uuid())
-  name             String
-  slug             String   @unique
-  databaseName     String
-  databaseHost     String
+  id               String       @id @default(uuid()) @db.Uuid
+  name             String       @db.VarChar(255)
+  slug             String       @unique @db.VarChar(255)
+  databaseName     String       @unique @db.VarChar(255)
+  databaseHost     String       @db.VarChar(255)
   databasePort     Int
-  databaseUser     String
-  databasePassword String
-  status           String
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  databaseUser     String       @db.VarChar(255)
+  databasePassword String       @db.VarChar(255)
+  status           TenantStatus @default(ACTIVE)
+  
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
 }

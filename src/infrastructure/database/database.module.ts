@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
+import { TenantConnectionManager } from './tenant-connection.manager';
 
 /**
  * Módulo de infraestructura para la base de datos maestra.
@@ -8,7 +9,13 @@ import { PrismaService } from './prisma.service';
  */
 @Global()
 @Module({
-  providers: [PrismaService],
-  exports: [PrismaService],
+ providers: [
+    PrismaService,
+    TenantConnectionManager,
+    
+  ],
+  exports: [PrismaService,
+    TenantConnectionManager
+  ],
 })
 export class DatabaseModule {}
