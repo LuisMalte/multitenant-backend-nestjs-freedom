@@ -59,11 +59,21 @@ export class TenantGuard implements CanActivate {
       throw new UnauthorizedException('Tenant is not active');
     }
 
-    //  Adjunta la información del cliente a la petición para reciclar estos datos 
-    // en los siguientes pasos (como el TenantConnectionManager) sin volver a consultar la base de datos.
-    request['tenant'] = tenant;
+  
+
+    /**
+     * Mutación del ciclo de vida HTTP (Propagación de estado).
+     * Inyecta el registro validado del tenant en el objeto Request de Express.
+     * 
+     * Propósito: Proveer al TenantConnectionManager las credenciales exactas 
+     * directamente desde la memoria RAM, erradicando la necesidad de realizar 
+     * consultas redundantes a la Master DB.
+     */
+    request.tenant = tenant;
+
 
     // Otorga luz verde para que la petición ingrese al sistema
     return true;
+
   }
 }

@@ -1,14 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaClient } from '../../../generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { TenantDatabaseConfig } from './tenant-database.config';
 
-interface TenantDatabaseConfig {
-  host: string;
-  port: number;
-  name: string;
-  user: string;
-  password: string;
-}
 
 @Injectable()
 export class TenantConnectionManager {
