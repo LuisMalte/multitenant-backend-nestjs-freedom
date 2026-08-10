@@ -4,7 +4,8 @@ import { configuration, validate } from './infrastructure/config';
 import { LoggerModule } from './infrastructure/logger';
 import { FilterModule } from './common/filters';
 import { DatabaseModule } from './infrastructure/database';
-
+import { TenantGuard } from './common/guards';
+import { TenantTestController } from './common/guards/tenant-test.controller';
 /**
  * Módulo raíz de la aplicación.
  * Orquesta la configuración global y el árbol de dependencias inicial.
@@ -24,6 +25,11 @@ import { DatabaseModule } from './infrastructure/database';
     FilterModule,
     DatabaseModule,
   ],
+
+    providers: [TenantGuard],
+
+    controllers: [TenantTestController],
+
  
 })
 export class AppModule {}
