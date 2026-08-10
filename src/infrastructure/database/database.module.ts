@@ -14,7 +14,8 @@ import { TenantConnectionManager } from './tenant-connection.manager';
     TenantConnectionManager,
     
   ],
-  exports: [PrismaService,
+  exports: [
+    PrismaService,
     TenantConnectionManager
   ],
 })
