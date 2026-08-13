@@ -1,69 +1,188 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaClient } from '../../../generated/prisma/client';
+import {
+  Injectable,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { Logger } from 'nestjs-pino';
+import { PrismaClient } from '../../../generated/tenant-client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { TenantDatabaseConfig } from './tenant-database.config';
 
 /**
- * Gestor centralizado de conexiones Multi-Tenant ("Database per Tenant").
- * 
- * Responsabilidad Única:
- * Administrar un caché en memoria RAM mediante un Map para reutilizar las instancias 
- * de PrismaClient existentes por cada tenant, evitando la saturación de conexiones 
- * a PostgreSQL y garantizando la persistencia aislada por cliente.
+ * Representa una entrada en el caché de conexiones.
+ * Almacena la instancia de Prisma y el timestamp de su última actividad.
+ */
+interface TenantClientEntry {
+  client: PrismaClient;
+  lastUsedAt: number;
+}
+
+/**
+ * Gestor centralizado de conexiones Multi-Tenant.
+ *
+ * Implementa el patrón "Database per Tenant" mediante un caché en memoria
+ * de instancias PrismaClient reutilizables. Garantiza que cada tenant
+ * mantenga como máximo una instancia activa dentro de este proceso,
+ * previniendo el agotamiento del pool de conexiones de PostgreSQL.
+ *
+ * Las conexiones inactivas se cierran y eliminan después del TTL configurado.
  */
 @Injectable()
-export class TenantConnectionManager {
-  /** 
-   * Caché en memoria que almacena las instancias activas de PrismaClient indexadas por el ID del tenant.
-   * Estructura: Map<TenantId, PrismaClientInstance>
-   */
-  private readonly clients = new Map<string, PrismaClient>();
+export class TenantConnectionManager
+  implements OnModuleInit, OnModuleDestroy
+{
+  /** Diccionario en memoria RAM. Llave: TenantId, Valor: Entrada de cliente */
+  private readonly clients = new Map<string, TenantClientEntry>();
+
+  /** Referencia al temporizador de limpieza para poder destruirlo al apagar */
+  private cleanupInterval?: NodeJS.Timeout;
+
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly logger: Logger,
+  ) {}
 
   /**
-   * Obtiene una instancia activa de PrismaClient para un tenant específico.
-   * Si la conexión ya existe en caché, la reutiliza; de lo contrario, la instancia bajo demanda.
+   * Hook de ciclo de vida de NestJS.
+   * Se ejecuta una vez cuando el módulo se inicializa.
+   * Configura el bucle periódico que barre la memoria buscando conexiones inactivas.
+   */
+  onModuleInit(): void {
+    const ttlMs = this.configService.getOrThrow<number>(
+      'tenancy.connectionTtlMs',
+    );
+
+    this.cleanupInterval = setInterval(() => {
+      void this.removeExpiredClients(ttlMs);
+    }, ttlMs);
+
+    this.logger.log(
+      { ttlMs },
+      'Tenant connection manager initialized',
+    );
+  }
+
+  /**
+   * Obtiene el PrismaClient asociado al tenant.
    * 
-   * 
+   * @param tenantId Identificador único del tenant en la Master DB.
+   * @param config Credenciales físicas para conectarse a la base de datos del tenant.
+   * @returns Instancia activa de PrismaClient conectada a la BD del tenant.
    */
   getClient(
     tenantId: string,
     config: TenantDatabaseConfig,
   ): PrismaClient {
-    const existingClient = this.clients.get(tenantId);
+    const existingEntry = this.clients.get(tenantId);
 
-    // Retorna la conexión existente si ya fue inicializada previamente (Patrón Singleton por Tenant)
-    if (existingClient) {
-      return existingClient;
+    // Caché Hit: Si existe, renueva el tiempo de vida (TTL) y reutiliza la conexión.
+    if (existingEntry) {
+      existingEntry.lastUsedAt = Date.now();
+      return existingEntry.client;
     }
 
-    // Si no existe, genera una nueva conexión y la registra en el caché
+    // Caché Miss: Si no existe, crea una nueva conexión, la registra y la devuelve.
     const client = this.createClient(config);
-    this.clients.set(tenantId, client);
+
+    this.clients.set(tenantId, {
+      client,
+      lastUsedAt: Date.now(),
+    });
+
+    this.logger.log(
+      { tenantId, databaseName: config.name },
+      'Tenant PrismaClient created',
+    );
 
     return client;
   }
 
   /**
-   * Método de fábrica privado para construir y configurar una nueva instancia de PrismaClient.
-   * Utiliza el adaptador nativo de PostgreSQL para Prisma.
-   * 
+   * Construye un PrismaClient apuntando exclusivamente
+   * a la base de datos PostgreSQL física del tenant utilizando el driver nativo (pg).
    */
   private createClient(
     config: TenantDatabaseConfig,
   ): PrismaClient {
-    // Construcción de la URI de conexión estándar para PostgreSQL
     const connectionString =
       `postgresql://${config.user}:${config.password}` +
       `@${config.host}:${config.port}/${config.name}`;
 
-    // Inicialización del adaptador de PostgreSQL para Prisma
     const adapter = new PrismaPg({
       connectionString,
     });
 
-    // Instanciación del cliente ORM con el adaptador dinámico configurado
-    return new PrismaClient({
-      adapter,
-    });
+    return new PrismaClient({ adapter });
+  }
+
+  /**
+   * Escanea el caché en busca de clientes que hayan superado el tiempo máximo de inactividad.
+   * 
+   * @param ttlMs Tiempo de vida en milisegundos.
+   */
+  private async removeExpiredClients(
+    ttlMs: number,
+  ): Promise<void> {
+    const now = Date.now();
+
+    for (const [tenantId, entry] of this.clients.entries()) {
+      const inactiveTime = now - entry.lastUsedAt;
+
+      // Si aún no vence el TTL, pasa al siguiente tenant
+      if (inactiveTime < ttlMs) {
+        continue;
+      }
+
+      // Si venció, procede con la desconexión
+      await this.disconnectClient(tenantId, entry);
+    }
+  }
+
+  /**
+   * Cierra ordenadamente la conexión TCP con PostgreSQL y elimina el registro de la memoria RAM.
+   */
+  private async disconnectClient(
+    tenantId: string,
+    entry: TenantClientEntry,
+  ): Promise<void> {
+    try {
+      await entry.client.$disconnect();
+
+      this.logger.log(
+        { tenantId },
+        'Tenant PrismaClient disconnected',
+      );
+    } catch (error) {
+      this.logger.error(
+        { err: error, tenantId },
+        'Failed to disconnect tenant PrismaClient',
+      );
+    } finally {
+      // Se elimina del Map sin importar si $disconnect falló, para evitar clientes zombis
+      this.clients.delete(tenantId);
+    }
+  }
+
+  /**
+   * Hook de ciclo de vida de NestJS.
+   * Se ejecuta durante el apagado de la aplicación (SIGTERM/SIGINT).
+   * Garantiza que no queden conexiones fantasma abiertas en la base de datos.
+   */
+  async onModuleDestroy(): Promise<void> {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+    }
+
+    // Ejecuta la desconexión de todos los clientes activos en paralelo
+    const disconnectOperations = Array.from(
+      this.clients.entries(),
+    ).map(([tenantId, entry]) =>
+      this.disconnectClient(tenantId, entry),
+    );
+
+    await Promise.all(disconnectOperations);
+
+    this.logger.log('Tenant connection manager destroyed');
   }
 }

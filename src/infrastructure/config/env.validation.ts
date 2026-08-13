@@ -64,6 +64,11 @@ class EnvironmentVariables {
 
   @IsString()
   LOG_LEVEL!: string;
+
+  @IsInt()
+  @Min(60000)
+  TENANT_CONNECTION_TTL_MS!: number;
+
 }
 
 // función de entrada para auditar la configuración de la infraestructura.

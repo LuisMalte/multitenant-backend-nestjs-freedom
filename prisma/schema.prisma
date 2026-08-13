@@ -3,7 +3,6 @@
 
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
-
 generator client {
   provider     = "prisma-client"
   output       = "../generated/prisma"
@@ -13,7 +12,7 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
-              
+
 model Tenant {
   id               String       @id @default(uuid()) @db.Uuid
   name             String       @db.VarChar(255)
@@ -24,7 +23,12 @@ model Tenant {
   databaseUser     String       @db.VarChar(255)
   databasePassword String       @db.VarChar(255)
   status           TenantStatus @default(ACTIVE)
-  
-  createdAt        DateTime     @default(now()) @map("created_at")
-  updatedAt        DateTime     @updatedAt @map("updated_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+}
+
+enum TenantStatus {
+  ACTIVE
+  INACTIVE
 }

@@ -15,6 +15,13 @@ export default () => ({
     },
   },
 
+
+
+  tenancy: {
+    connectionTtlMs: Number(process.env.TENANT_CONNECTION_TTL_MS),
+  },
+
+  
   jwt: {
     secret: process.env.JWT_SECRET,
     expiresIn: process.env.JWT_EXPIRES_IN,

@@ -55,16 +55,16 @@ export class PostgresProvisioningService {
    * @throws {InternalServerErrorException} Si las credenciales fallan o el clúster rechaza la operación.
    */
   async createDatabase(databaseName: string): Promise<void> {
-    // 1. Barrera de seguridad innegociable
+    // Barrera de seguridad innegociable
     this.validateDatabaseName(databaseName);
 
-    // 2. Extracción de variables bajo el principio Fail-Fast (Falla rápido si no existen)
+    // Extracción de variables bajo el principio Fail-Fast (Falla rápido si no existen)
     const host = this.configService.getOrThrow<string>('database.master.host');
     const port = this.configService.getOrThrow<number>('database.master.port');
     const user = this.configService.getOrThrow<string>('database.master.user');
     const password = this.configService.getOrThrow<string>('database.master.password');
 
-    // 3. Configuración del driver nativo apuntando a la base del sistema 'postgres'
+    // Configuración del driver nativo apuntando a la base del sistema 'postgres'
     const client = new Client({
       host,
       port,
@@ -79,10 +79,10 @@ export class PostgresProvisioningService {
         'Creating tenant database',
       );
 
-      // 4. Apertura del socket TCP/IP con el clúster
+      // Apertura del socket TCP/IP con el clúster
       await client.connect();
 
-      // 5. Ejecución del comando DDL con interpolación (Segura gracias a la validación previa)
+      // Ejecución del comando DDL con interpolación (Segura gracias a la validación previa)
       await client.query(`CREATE DATABASE "${databaseName}"`);
 
       this.logger.log(
@@ -90,7 +90,7 @@ export class PostgresProvisioningService {
         'Tenant database created successfully',
       );
     } catch (error) {
-      // 6. Registro estructurado del fallo real para análisis interno
+      // Registro estructurado del fallo real para análisis interno
       this.logger.error(
         {
           err: error,
@@ -99,12 +99,12 @@ export class PostgresProvisioningService {
         'Failed to create tenant database',
       );
 
-      // 7. Lanzamiento de excepción genérica para proteger la infraestructura
+      // Lanzamiento de excepción genérica para proteger la infraestructura
       throw new InternalServerErrorException(
         'Could not create tenant database',
       );
     } finally {
-      // 8. Liberación obligatoria de recursos del servidor
+      // Liberación obligatoria de recursos del servidor
       await client.end();
     }
   }

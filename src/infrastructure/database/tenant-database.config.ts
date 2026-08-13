@@ -12,7 +12,7 @@ export interface TenantDatabaseConfig {
   /** Nombre físico de la base de datos asignada exclusivamente a este tenant. */
   name: string;
   
-  /** Nombre de usuario con privilegios de acceso sobre la base de datos del tenant. */
+  /** Nombre de usuario con privilegios de acces  o sobre la base de datos del tenant. */
   user: string;
   
   /** Contraseña de autenticación segura para el usuario de la base de datos del tenant. */

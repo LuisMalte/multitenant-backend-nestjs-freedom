@@ -2,6 +2,8 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
+import { configureScalar } from './infrastructure/docs/scalar.config';
+import { createOpenApiDocument } from './infrastructure/docs/openapi.config';
 
 /**
  * Punto de entrada principal (bootstrap) de la aplicación.
@@ -30,6 +32,12 @@ async function bootstrap() {
   // Sobrescribe el logger nativo de NestJS para delegar todo 
   // el registro de eventos a la implementación unificada de Pino.
   app.useLogger(logger);
+
+
+  // Genera la especificación OpenAPI y configura el endpoint de documentación.
+  const openApiDocument = createOpenApiDocument(app, configService);
+  configureScalar(app, openApiDocument);
+
 
   // Inicializa el servidor HTTP y bloquea hasta que el puerto de red esté abierto.
   await app.listen(port);
