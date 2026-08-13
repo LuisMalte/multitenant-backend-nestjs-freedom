@@ -9,7 +9,7 @@ import { Client } from 'pg';
 
 /**
  * Servicio de infraestructura encargado exclusivamente del aprovisionamiento físico
- * de bases de datos PostgreSQL a nivel de clúster.
+ * de bases de datos PostgreSQL 
  * 
  * Este servicio no utiliza Prisma, ya que los ORM no están diseñados para ejecutar
  * comandos DDL administrativos (como CREATE DATABASE) fuera del contexto de una base

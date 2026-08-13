@@ -5,7 +5,10 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
+// CORRECCIÓN APLICADA: Importando el cliente exclusivo de Tenants, no el de Master.
 import { PrismaClient } from '../../../generated/tenant-client';
+
+
 import { PrismaPg } from '@prisma/adapter-pg';
 import { TenantDatabaseConfig } from './tenant-database.config';
 
