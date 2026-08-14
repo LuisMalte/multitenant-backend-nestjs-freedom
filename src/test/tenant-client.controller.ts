@@ -8,6 +8,8 @@ import type { Request } from 'express';
 import { TenantGuard } from '../common/guards';
 import { TenantContextService } from '../common/tenancy';
 
+
+// Controlador de prueba para verificar la resolución del contexto de inquilino y la conexión a la base de datos física.
 @Controller('test')
 export class TenantClientController {
   constructor(
