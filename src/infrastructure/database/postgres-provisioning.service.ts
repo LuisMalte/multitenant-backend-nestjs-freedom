@@ -108,4 +108,67 @@ export class PostgresProvisioningService {
       await client.end();
     }
   }
+
+    /**
+    * Elimina físicamente la base de datos del tenant en el clúster PostgreSQL.
+   * @param databaseName  - Nombre de la base de datos a eliminar.
+   */
+  async dropDatabase(databaseName: string): Promise<void> {
+    this.validateDatabaseName(databaseName);
+
+    const host = this.configService.getOrThrow<string>(
+      'database.master.host',
+    );
+    const port = this.configService.getOrThrow<number>(
+      'database.master.port',
+    );
+    const user = this.configService.getOrThrow<string>(
+      'database.master.user',
+    );
+    const password = this.configService.getOrThrow<string>(
+      'database.master.password',
+    );
+
+    const client = new Client({
+      host,
+      port,
+      user,
+      password,
+      database: 'postgres',
+    });
+
+    try {
+      // Registro de advertencia para auditoría y telemetría
+      this.logger.warn(
+        { databaseName },
+        'Rolling back tenant database creation',
+      );
+
+      await client.connect();
+      //con el parámetro FORCE, se fuerza la desconexión de cualquier cliente conectado a la base de datos antes de eliminarla.
+      await client.query(
+        `DROP DATABASE IF EXISTS "${databaseName}" WITH (FORCE)`,
+      );
+
+      // Registro de éxito para auditoría y telemetría
+      this.logger.warn(
+        { databaseName },
+        'Tenant database rollback completed',
+      );
+    } catch (error) {
+      this.logger.error(
+        {
+          err: error,
+          databaseName,
+        },
+        'Failed to rollback tenant database',
+      );
+
+      throw new InternalServerErrorException(
+        'Could not rollback tenant database',
+      );
+    } finally {
+      await client.end();
+    }
+  }
 }

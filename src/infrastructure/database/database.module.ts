@@ -2,6 +2,7 @@ import { Global, Module } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import { TenantConnectionManager } from './tenant-connection.manager';
 import { PostgresProvisioningService } from './postgres-provisioning.service';
+import { TenantMigrationService } from './tenant-migration.service';
 
 
 /**
@@ -14,12 +15,14 @@ import { PostgresProvisioningService } from './postgres-provisioning.service';
  providers: [
     PrismaService,
     TenantConnectionManager,
-    PostgresProvisioningService
+    PostgresProvisioningService,
+    TenantMigrationService
   ],
   exports: [
     PrismaService,
     TenantConnectionManager,
-    PostgresProvisioningService
+    PostgresProvisioningService,
+    TenantMigrationService,
   ],
 })
 export class DatabaseModule {}
