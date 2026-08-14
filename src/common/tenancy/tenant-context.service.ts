@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { Request } from 'express';
-import { PrismaClient } from '../../../generated/prisma/client';
+import { PrismaClient } from '../../../generated/tenant/prisma/client';
 import { TenantConnectionManager } from '../../infrastructure/database';
 
 @Injectable()

@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
 import { configureScalar } from './infrastructure/docs/scalar.config';
 import { createOpenApiDocument } from './infrastructure/docs/openapi.config';
-
+import { ValidationPipe } from '@nestjs/common';
 /**
  * Punto de entrada principal (bootstrap) de la aplicación.
  * Orquesta la inicialización del framework, inyecta la configuración, 
@@ -23,6 +23,18 @@ async function bootstrap() {
   // Redirige todo el logging a Pino
   const logger = app.get(Logger);
 
+  // Configura un pipe global para validar y transformar automáticamente los DTOs de entrada.
+  app.useGlobalPipes(
+  new ValidationPipe({   
+    // Permite solo propiedades definidas en el DTO.
+    whitelist: true,
+    // Rechaza propiedades no definidas en el DTO.
+    forbidNonWhitelisted: true,
+    // Transforma los tipos automáticamente.
+    transform: true,
+  }),
+);
+
   // Recupera variables críticas (fail-fast: aborta si no existen).
   const appName = configService.getOrThrow<string>('app.name');
   const port = configService.getOrThrow<number>('app.port');
@@ -32,6 +44,10 @@ async function bootstrap() {
   // Sobrescribe el logger nativo de NestJS para delegar todo 
   // el registro de eventos a la implementación unificada de Pino.
   app.useLogger(logger);
+
+
+   //configura un prefijo global para todas las rutas de la API,
+   app.setGlobalPrefix('api/v1'); 
 
 
   // Genera la especificación OpenAPI y configura el endpoint de documentación.

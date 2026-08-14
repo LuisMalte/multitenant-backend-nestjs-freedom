@@ -6,6 +6,9 @@ import { FilterModule } from './common/filters';
 import { DatabaseModule } from './infrastructure/database';
 import { TenantGuard } from './common/guards';
 import { TenancyModule } from './common/tenancy';
+import { TenantsModule } from './modules/tenants/tenants.module';
+import { TenantClientController } from './test/tenant-client.controller';
+
 /**
  * Módulo raíz de la aplicación.
  * Orquesta la configuración global y el árbol de dependencias inicial.
@@ -25,9 +28,12 @@ import { TenancyModule } from './common/tenancy';
     FilterModule,
     DatabaseModule,
     TenancyModule,
+    TenantsModule,
   ],
 
-    providers: [TenantGuard],
+  controllers: [TenantClientController],
+ providers: [TenantGuard],
+
 
  
 })
