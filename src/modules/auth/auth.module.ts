@@ -2,6 +2,10 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+
+import { UsersModule } from '../users/users.module';
+import { AuthController } from './auth.controller';
+import { AuthService } from './auth.service';
 import type { StringValue } from 'ms';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -12,6 +16,8 @@ import { JwtStrategy } from './strategies/jwt.strategy';
  */
 @Module({
   imports: [
+    UsersModule, // Necesario para inyectar UsersService en AuthService.
+
     // Importa ConfigModule para tener acceso a las variables de entorno.
     ConfigModule,
     
@@ -34,10 +40,20 @@ import { JwtStrategy } from './strategies/jwt.strategy';
       }),
     }),
   ],
+    // Registra el servicio de autenticación y lo hace disponible para otros módulos.
+    controllers: [AuthController],
+
   // Registra la estrategia y el guardián en el contenedor de Inyección de Dependencias.
-  providers: [JwtStrategy, JwtAuthGuard],
+  providers: [
+    JwtStrategy,
+    JwtAuthGuard,
+    AuthService,
+],
   
   // Expone estas herramientas para que otros módulos (como Users o Courts) puedan usarlas.
-  exports: [JwtModule, PassportModule, JwtAuthGuard],
+  exports: [
+    JwtModule, 
+    PassportModule, 
+    JwtAuthGuard],
 })
 export class AuthModule {}
