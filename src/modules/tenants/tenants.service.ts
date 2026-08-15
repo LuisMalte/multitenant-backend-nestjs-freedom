@@ -1,9 +1,10 @@
-import {Injectable, InternalServerErrorException,} from '@nestjs/common';
+import {Injectable, ConflictException,} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../infrastructure/database/prisma.service';
 import { PostgresProvisioningService,TenantMigrationService, } from '../../infrastructure/database';
 import { CreateTenantDto } from './dto/create-tenant.dto';
 import { Logger } from 'nestjs-pino';
+
 
 @Injectable()
 export class TenantsService {
@@ -25,9 +26,7 @@ export class TenantsService {
     });
 
     if (existingTenant) {
-      throw new InternalServerErrorException(
-        'Tenant slug already exists',
-      );
+      throw new ConflictException('Tenant slug already exists');
     }
 
     // 2. Normalización del Nombre de la Base de Datos Física

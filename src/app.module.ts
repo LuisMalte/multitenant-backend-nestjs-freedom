@@ -8,6 +8,8 @@ import { TenantGuard } from './common/guards';
 import { TenancyModule } from './common/tenancy';
 import { TenantsModule } from './modules/tenants/tenants.module';
 import { TenantClientController } from './test/tenant-client.controller';
+import { AuthModule } from './modules/auth/auth.module';
+import { UsersModule } from './modules/users/users.module';
 
 /**
  * Módulo raíz de la aplicación.
@@ -21,7 +23,10 @@ import { TenantClientController } from './test/tenant-client.controller';
       expandVariables: true, // Permite interpolación de variables en los .env.
       load: [configuration], // Inyecta el objeto de configuración base.
       validate,              // Ejecuta la validación estricta (fail-fast) en el arranque.
-    }),
+      
+    }
+    
+  ),
 
 
     LoggerModule,
@@ -29,6 +34,8 @@ import { TenantClientController } from './test/tenant-client.controller';
     DatabaseModule,
     TenancyModule,
     TenantsModule,
+    AuthModule,
+    UsersModule,
   ],
 
   controllers: [TenantClientController],
