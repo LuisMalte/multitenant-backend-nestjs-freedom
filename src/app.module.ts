@@ -10,7 +10,7 @@ import { TenantsModule } from './modules/tenants/tenants.module';
 import { TenantClientController } from './test/tenant-client.controller';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
-
+import { CustomersModule } from './modules/customers/customers.module';
 /**
  * Módulo raíz de la aplicación.
  * Orquesta la configuración global y el árbol de dependencias inicial.
@@ -36,6 +36,7 @@ import { UsersModule } from './modules/users/users.module';
     TenantsModule,
     AuthModule,
     UsersModule,
+    CustomersModule,
   ],
 
   controllers: [TenantClientController],

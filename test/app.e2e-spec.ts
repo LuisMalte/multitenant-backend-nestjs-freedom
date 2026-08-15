@@ -20,10 +20,9 @@ describe('Tenant multi-tenancy (e2e)', () => {
   const createdTenants: CreatedTenant[] = [];
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule =
-      await Test.createTestingModule({
-        imports: [AppModule],
-      }).compile();
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
 
     app = moduleFixture.createNestApplication();
 
@@ -38,9 +37,7 @@ describe('Tenant multi-tenancy (e2e)', () => {
     app.setGlobalPrefix('api/v1');
 
     prismaService = app.get(PrismaService);
-    postgresProvisioningService = app.get(
-      PostgresProvisioningService,
-    );
+    postgresProvisioningService = app.get(PostgresProvisioningService);
 
     await app.init();
   });
@@ -77,20 +74,14 @@ describe('Tenant multi-tenancy (e2e)', () => {
     createdTenants.push(tenantA, tenantB);
 
     expect(tenantA.id).not.toBe(tenantB.id);
-    expect(tenantA.databaseName).not.toBe(
-      tenantB.databaseName,
-    );
+    expect(tenantA.databaseName).not.toBe(tenantB.databaseName);
 
-    const tenantAResponseDatabase = await request(
-      app.getHttpServer(),
-    )
+    const tenantAResponseDatabase = await request(app.getHttpServer())
       .get('/api/v1/test/tenant-client')
       .set('X-Tenant-Id', tenantA.id)
       .expect(200);
 
-    const tenantBResponseDatabase = await request(
-      app.getHttpServer(),
-    )
+    const tenantBResponseDatabase = await request(app.getHttpServer())
       .get('/api/v1/test/tenant-client')
       .set('X-Tenant-Id', tenantB.id)
       .expect(200);
@@ -146,37 +137,50 @@ describe('Tenant multi-tenancy (e2e)', () => {
 
     expect(duplicateResponse.body.databasePassword).toBeUndefined();
 
-    const tenantsWithSlug =
-      await prismaService.tenant.findMany({
-        where: {
-          slug,
-        },
-      });
+    const tenantsWithSlug = await prismaService.tenant.findMany({
+      where: {
+        slug,
+      },
+    });
 
     expect(tenantsWithSlug).toHaveLength(1);
     expect(tenantsWithSlug[0].id).toBe(tenantId);
-    expect(tenantsWithSlug[0].databaseName).toBe(
-      databaseName,
-    );
+    expect(tenantsWithSlug[0].databaseName).toBe(databaseName);
   });
 
   it('should create a tenant user and authenticate with JWT', async () => {
     const testSuffix = Date.now();
 
-    const tenantResponse = await request(app.getHttpServer())
+    const tenantAResponse = await request(app.getHttpServer())
       .post('/api/v1/tenants')
       .send({
-        name: 'E2E Auth Tenant',
-        slug: `e2e-auth-${testSuffix}`,
+        name: 'E2E Auth Tenant A',
+        slug: `e2e-auth-a-${testSuffix}`,
       })
       .expect(201);
 
-    const tenantId = tenantResponse.body.id;
-    const databaseName = tenantResponse.body.databaseName;
+    const tenantAId = tenantAResponse.body.id;
+    const tenantADatabaseName = tenantAResponse.body.databaseName;
 
     createdTenants.push({
-      id: tenantId,
-      databaseName,
+      id: tenantAId,
+      databaseName: tenantADatabaseName,
+    });
+
+    const tenantBResponse = await request(app.getHttpServer())
+      .post('/api/v1/tenants')
+      .send({
+        name: 'E2E Auth Tenant B',
+        slug: `e2e-auth-b-${testSuffix}`,
+      })
+      .expect(201);
+
+    const tenantBId = tenantBResponse.body.id;
+    const tenantBDatabaseName = tenantBResponse.body.databaseName;
+
+    createdTenants.push({
+      id: tenantBId,
+      databaseName: tenantBDatabaseName,
     });
 
     const email = `e2e-${testSuffix}@example.com`;
@@ -184,7 +188,7 @@ describe('Tenant multi-tenancy (e2e)', () => {
 
     const userResponse = await request(app.getHttpServer())
       .post('/api/v1/users')
-      .set('X-Tenant-Id', tenantId)
+      .set('X-Tenant-Id', tenantAId)
       .send({
         name: 'E2E Auth User',
         email,
@@ -204,35 +208,66 @@ describe('Tenant multi-tenancy (e2e)', () => {
 
     const loginResponse = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
-      .set('X-Tenant-Id', tenantId)
+      .set('X-Tenant-Id', tenantAId)
       .send({
         email,
         password,
       })
       .expect(201);
 
-    expect(loginResponse.body).toEqual(
+    const accessToken = loginResponse.body.accessToken;
+
+    expect(accessToken).toEqual(expect.any(String));
+    expect(accessToken).not.toBe('');
+
+    const tenantAProtectedResponse = await request(app.getHttpServer())
+      .get('/api/v1/test/tenant-client-secure')
+      .set('X-Tenant-Id', tenantAId)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(tenantAProtectedResponse.body).toEqual({
+      database: tenantADatabaseName,
+    });
+
+    const tenantBProtectedResponse = await request(app.getHttpServer())
+      .get('/api/v1/test/tenant-client-secure')
+      .set('X-Tenant-Id', tenantBId)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(401);
+
+    expect(tenantBProtectedResponse.body).toEqual(
       expect.objectContaining({
-        accessToken: expect.any(String),
+        success: false,
+        statusCode: 401,
+        path: '/api/v1/test/tenant-client-secure',
+        message: 'JWT tenant mismatch',
       }),
     );
 
-    expect(loginResponse.body.accessToken).not.toBe('');
+    expect(tenantBProtectedResponse.body.database).toBeUndefined();
+    expect(tenantBProtectedResponse.body).not.toEqual(
+      expect.objectContaining({
+        database: tenantBDatabaseName,
+      }),
+    );
   });
 
   afterAll(async () => {
-    for (const tenant of createdTenants) {
-      await postgresProvisioningService.dropDatabase(
-        tenant.databaseName,
-      );
+    if (postgresProvisioningService && prismaService) {
+      for (const tenant of createdTenants) {
+        await postgresProvisioningService.dropDatabase(tenant.databaseName);
 
-      await prismaService.tenant.delete({
-        where: {
-          id: tenant.id,
-        },
-      });
+        await prismaService.tenant.delete({
+          where: {
+            id: tenant.id,
+          },
+        });
+      }
     }
-
-    await app.close();
+    
+    if (app) {
+      await app.close();
+    }
   });
 });

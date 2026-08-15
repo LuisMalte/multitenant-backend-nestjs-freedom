@@ -1,0 +1,53 @@
+### ==========================================
+### CONFIGURACIÓN DE VARIABLES DE PRUEBA
+### ==========================================
+@baseUrl = http://localhost:3000/api/v1
+
+# Inquilino (Tenant) creado previamente
+@tenantId = 5872ce18-96bd-49d5-9da9-4368c65149e8
+
+# Token JWT generado por tu login manual
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YTJiYTRkMi1jOTMyLTQyYjQtYjQ0MS1iYzI1MzRhMmQwNjYiLCJ0ZW5hbnRJZCI6IjU4NzJjZTE4LTk2YmQtNDlkNS05ZGE5LTQzNjhjNjUxNDllOCIsInJvbGUiOiJVU0VSIiwiaWF0IjoxNzg2ODE1MDg1LCJleHAiOjE3ODY5MDE0ODV9.5rEi7lgRTjBXpUUwNSykaU2fsQGJS2eypwLoRffAf1Q
+
+# ID del cliente (Juan Pérez) que ya creaste en la terminal
+@customerId = 9b2e7c79-001a-4589-9b1a-eb5d3a78368a
+
+
+### ==========================================
+### MÓDULO DE CUSTOMERS (OPERACIONES DISPONIBLES)
+### ==========================================
+
+### 1. Listar Clientes (Con paginación básica)
+GET {{baseUrl}}/customers?page=1&limit=10
+X-Tenant-Id: {{tenantId}}
+Authorization: Bearer {{token}}
+
+### 2. Buscar Clientes por Filtro de Nombre (Insensible a mayúsculas)
+GET {{baseUrl}}/customers?name=Juan
+X-Tenant-Id: {{tenantId}}
+Authorization: Bearer {{token}}
+
+### 3. Listar Clientes con Ordenamiento (Whitelisted)
+GET {{baseUrl}}/customers?sortBy=name&order=asc
+X-Tenant-Id: {{tenantId}}
+Authorization: Bearer {{token}}
+
+### 4. Obtener un Cliente Específico por su ID (UUID)
+GET {{baseUrl}}/customers/{{customerId}}
+X-Tenant-Id: {{tenantId}}
+Authorization: Bearer {{token}}
+
+### 5. Actualizar Parcialmente un Cliente (PATCH)
+PATCH {{baseUrl}}/customers/{{customerId}}
+Content-Type: application/json
+X-Tenant-Id: {{tenantId}}
+Authorization: Bearer {{token}}
+
+{
+  "phone": "3229998877"
+}
+
+### 6. Eliminar un Cliente (Soft Delete - Asigna fecha de baja lógica)
+DELETE {{baseUrl}}/customers/{{customerId}}
+X-Tenant-Id: {{tenantId}}
+Authorization: Bearer {{token}}
