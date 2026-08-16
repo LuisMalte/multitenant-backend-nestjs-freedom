@@ -11,6 +11,10 @@ import { TenantClientController } from './test/tenant-client.controller';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { CustomersModule } from './modules/customers/customers.module';
+import { CourtsModule } from './modules/courts/courts.module';
+import { ReservationsModule } from './modules/reservations/reservations.module';
+
+
 /**
  * Módulo raíz de la aplicación.
  * Orquesta la configuración global y el árbol de dependencias inicial.
@@ -37,6 +41,8 @@ import { CustomersModule } from './modules/customers/customers.module';
     AuthModule,
     UsersModule,
     CustomersModule,
+    CourtsModule, 
+    ReservationsModule,
   ],
 
   controllers: [TenantClientController],
