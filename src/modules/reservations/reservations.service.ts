@@ -10,12 +10,16 @@ import { TenantContextService } from '../../common/tenancy';
 import { ReservationQueryDto } from './dto/reservation-query.dto';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { UpdateReservationDto } from './dto/update-reservation.dto';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ReservationCreatedEvent } from './events/reservation-created.event';
+
 
 @Injectable()
 export class ReservationsService {
   constructor(
     private readonly tenantContextService: TenantContextService,
     private readonly logger: Logger,
+    private readonly eventEmitter: EventEmitter2 // inyecta el EventEmitter para emitir eventos de dominio
   ) {}
 
   async create(
@@ -90,6 +94,17 @@ export class ReservationsService {
         reservationId: reservation.id,
       },
       'Tenant reservation created',
+    );
+
+    // Delegamos la lógica secundaria (como el envío de correos)
+    // al bus de eventos de NestJS para no penalizar la latencia HTTP.
+    this.eventEmitter.emit(
+      'reservation.created',
+      new ReservationCreatedEvent(
+        request.tenant!.id,
+        reservation.id,
+        dto.customerId,
+      ),
     );
 
     return reservation;

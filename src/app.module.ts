@@ -14,6 +14,7 @@ import { CustomersModule } from './modules/customers/customers.module';
 import { CourtsModule } from './modules/courts/courts.module';
 import { ReservationsModule } from './modules/reservations/reservations.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { MailModule } from './modules/mail/mail.module';
 
 /**
  * Módulo raíz de la aplicación.
@@ -32,7 +33,9 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     
   ),
 
+  // Configura el EventEmitter global para manejar eventos de dominio de manera asíncrona.
   EventEmitterModule.forRoot({
+      wildcard: false, // Desactiva comodines para mantener el rastro de eventos estricto
       global: true, // Permite que los eventos se escuchen entre diferentes módulos
     }),
 
@@ -47,6 +50,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     CustomersModule,
     CourtsModule, 
     ReservationsModule,
+    MailModule,
   ],
 
   controllers: [TenantClientController],
