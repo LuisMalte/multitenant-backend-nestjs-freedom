@@ -1,18 +1,42 @@
 services:
+  # 1. BASE DE DATOS (Master DB)
   postgres:
     image: postgres:18
     container_name: courtreserve-postgres
     restart: unless-stopped
-
     environment:
       POSTGRES_DB: ${MASTER_DATABASE_NAME}
       POSTGRES_USER: ${MASTER_DATABASE_USER}
       POSTGRES_PASSWORD: ${MASTER_DATABASE_PASSWORD}
-
     ports:
       - "${MASTER_DATABASE_PORT}:5432"
-
     volumes:
       - postgres_data:/var/lib/postgresql
+    # HEALTHCHECK: Docker le hará ping a PostgreSQL internamente
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${MASTER_DATABASE_USER} -d ${MASTER_DATABASE_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. TU API NESTJS
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: courtreserve-api
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    env_file:
+      - .env
+    # Esto asegura que la API no arranque hasta que la base de datos esté lista
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # CRÍTICO: En Docker, "localhost" no existe. El host de la DB es el nombre del contenedor ("postgres")
+      MASTER_DATABASE_HOST: postgres
+
 volumes:
   postgres_data:

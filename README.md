@@ -1,98 +1,154 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+¡Claro que sí! Vamos a preparar un `README.md` profesional, completo y estructurado para tu repositorio.
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Como recordatorio clave de tu arquitectura, este proyecto utiliza una aproximación avanzada con **NestJS Multi-Tenant (Database-per-Tenant)**, **Arquitectura Orientada a Eventos con Resend**, **Health Checks con Terminus**, **Logs estructurados con Pino**, documentación moderna mediante **Scalar** (en lugar de Swagger tradicional) y despliegue inmutable con **Docker Multi-Stage Build**.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Aquí tienes la estructura y el contenido exacto que debes copiar y pegar en tu archivo `README.md` en la raíz de tu proyecto:
 
-## Description
+---
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+# 🚀 CourtReserve Multi-Tenant SaaS Backend
 
-## Project setup
+Backend desarrollado con **NestJS** bajo una arquitectura robusta **Multi-Tenant (Database-per-Tenant)**, diseñado para garantizar el aislamiento de datos por cliente, escalabilidad, alta observabilidad y procesos asíncronos en segundo plano.
 
-```bash
-$ npm install
+---
+
+## 🏗️ Arquitectura y Características Principales
+
+* **Multi-Tenancy (Database-per-Tenant):** Gestión dinámica de bases de datos por cada cliente a través de un `TenantConnectionManager` respaldado por caché en memoria para optimizar conexiones efímeras.
+* **Arquitectura Orientada a Eventos (EDA):** Procesamiento asíncrono en segundo plano mediante `EventEmitter2` para notificaciones por correo electrónico sin bloquear el *Event Loop* principal.
+* **Proveedor de Correo:** Integración con la API de **Resend** para el envío de confirmaciones transaccionales de reservas.
+* **Monitoreo y Salud (Health Checks):** Endpoint de observabilidad implementado con `@nestjs/terminus` para evaluar la conectividad en vivo con la Base de Datos Maestra.
+* **Logging Estructurado:** Trazabilidad avanzada de peticiones y errores utilizando `nestjs-pino`.
+* **Documentación Moderna:** API interactiva documentada utilizando **Scalar** (`@scalar/nestjs-api-reference`).
+* **Contenedorización de Producción:** Imagen de Docker optimizada mediante **Multi-Stage Build** con generación dinámica de clientes Prisma y purga de dependencias de desarrollo (`devDependencies`).
+
+---
+
+## 🛠️ Requisitos Previos
+
+Asegúrate de contar con las siguientes herramientas instaladas en tu entorno local:
+
+* **Node.js** (Versión 20+ recomendada)
+* **Docker y Docker Compose**
+* **npm** o gestor de paquetes compatible
+
+---
+
+## ⚙️ Variables de Entorno
+
+Crea un archivo `.env` en la raíz del proyecto basándote en la siguiente estructura:
+
+```env
+# Configuración de la Aplicación
+PORT=3000
+NODE_ENV=development
+
+# Base de Datos Maestra (Master DB)
+MASTER_DATABASE_HOST=postgres
+MASTER_DATABASE_PORT=5432
+MASTER_DATABASE_NAME=courtreserve_master
+MASTER_DATABASE_USER=postgres
+MASTER_DATABASE_PASSWORD=tu_password_seguro
+
+# Seguridad / JWT
+JWT_SECRET=tu_jwt_secret_super_seguro
+JWT_EXPIRES_IN=1d
+
+# Infraestructura de Correo (Resend)
+RESEND_API_KEY=re_tu_api_key_de_resend
+
 ```
 
-## Compile and run the project
+*(Nota: Si ejecutas la base de datos de manera local fuera de Docker, recuerda cambiar `MASTER_DATABASE_HOST=localhost`).*
 
+---
+
+## 🐳 Despliegue con Docker (Recomendado para Producción)
+
+La forma más limpia y automatizada de levantar todo el ecosistema (Base de Datos PostgreSQL + Contenedor de la API optimizado) es utilizando Docker Compose.
+
+1. Construye y levanta los servicios en segundo plano:
 ```bash
-# development
-$ npm run start
+docker compose up --build -d
 
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
 ```
 
-## Run tests
 
+2. Verifica que los contenedores estén corriendo y saludables:
 ```bash
-# unit tests
-$ npm run test
+docker compose ps
 
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
 ```
 
-## Deployment
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
+3. Revisa los logs en tiempo real de la API:
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+docker compose logs -f api
+
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
 
-## Resources
+4. Para detener los servicios:
+```bash
+docker compose down
 
-Check out a few resources that may come in handy when working with NestJS:
+```
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
 
-## Support
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+---
 
-## Stay in touch
+## 💻 Ejecución Local (Desarrollo)
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+Si prefieres ejecutar la aplicación localmente para fines de desarrollo:
 
-## License
+1. Instala las dependencias:
+```bash
+npm install
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+```
+
+
+2. Genera los clientes de Prisma (Master y Tenant):
+```bash
+npx prisma generate --schema=prisma/master/schema.prisma
+npx prisma generate --schema=prisma/tenant/schema.prisma
+
+```
+
+
+3. Inicia el servidor en modo *watch*:
+```bash
+npm run start:dev
+
+```
+
+
+
+---
+
+## 📦 Colección de Peticiones HTTP (`requests.http`)
+
+Para facilitar las pruebas de los endpoints de la API (Creación de Tenants, Autenticación JWT, Clientes, Canchas y Reservas que disparan el evento de correo en segundo plano), puedes utilizar la extensión **REST Client** de VS Code empleando el archivo `requests.http` incluido en la raíz del repositorio.
+
+Principales flujos probados:
+
+* `POST /api/v1/tenants` (Aprovisionamiento de nuevos tenants)
+* `POST /api/v1/auth/login` (Autenticación administrativa)
+* `POST /api/v1/customers` (Gestión de clientes por tenant)
+* `POST /api/v1/courts` (Gestión de canchas)
+* `POST /api/v1/reservations` **(Dispara el evento asíncrono de correo vía Resend)**
+* `GET /api/v1/health` (Health Check de la Master DB y la aplicación)
+
+---
+
+## 📄 Documentación Interactiva (Scalar)
+
+Una vez que la aplicación esté corriendo, puedes acceder a la interfaz interactiva de la API basada en **Scalar** navegando a:
+
+```text
+http://localhost:3000/api/v1/docs
+
+```
+
+*(O la ruta configurada en tu main.ts para la documentación).*

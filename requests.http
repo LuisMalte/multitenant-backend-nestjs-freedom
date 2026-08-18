@@ -6,7 +6,7 @@
 @tenantId = 5872ce18-96bd-49d5-9da9-4368c65149e8
 @otherTenantId = 9c3f7172-d5ef-430d-8c90-d00a19f1b10b
 
-
+GET {{baseUrl}}/tenants
 ### ==========================================
 ### 0. AUTHENTICATION
 ### ==========================================
@@ -48,7 +48,7 @@ Authorization: Bearer {{loginAuth.response.body.accessToken}}
 
 
 ### Filter Customers
-GET {{baseUrl}}/customers?name=Customer
+  GET {{baseUrl}}/customers?name=Customer
 X-Tenant-Id: {{tenantId}}
 Authorization: Bearer {{loginAuth.response.body.accessToken}}
 
