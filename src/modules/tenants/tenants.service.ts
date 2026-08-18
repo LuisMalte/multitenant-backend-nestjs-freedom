@@ -1,9 +1,9 @@
-import { Injectable,ConflictException,NotFoundException,} from '@nestjs/common';
+import {Injectable,ConflictException,NotFoundException,} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
 
 import { PrismaService } from '../../infrastructure/database/prisma.service';
-import {PostgresProvisioningService,TenantMigrationService,} from '../../infrastructure/database';
+import {PostgresProvisioningService, TenantMigrationService,} from '../../infrastructure/database';
 import { Prisma } from '../../../generated/master/prisma/client';
 
 import {
@@ -21,34 +21,28 @@ export class TenantsService {
     private readonly tenantMigrationService: TenantMigrationService,
     private readonly logger: Logger,
   ) {}
-
+ 
+  // se usa para crear un nuevo tenant, asegurando la unicidad del slug, aprovisionando la base de datos física y aplicando migraciones lógicas
   async create(dto: CreateTenantDto) {
-    // 1. Validación de Unicidad en la Base de Datos Master
+    // Validación de Unicidad en la Base de Datos Master
     const existingTenant = await this.prismaService.tenant.findUnique({
-      where: {
-        slug: dto.slug,
-      },
+      where: { slug: dto.slug },
     });
 
     if (existingTenant) {
       throw new ConflictException('Tenant slug already exists');
     }
 
-    // 2. Normalización del Nombre de la Base de Datos Física
-    // Reemplaza los guiones medios por guiones bajos para cumplir con la sintaxis de PostgreSQL.
-    const databaseName = `courtreserve_tenant_${dto.slug.replace(
-      /-/g,
-      '_',
-    )}`;
+    // Normalización del Nombre de la Base de Datos Física
+    const databaseName = `courtreserve_tenant_${dto.slug.replace(/-/g, '_')}`;
 
-    // Extracción segura de credenciales maestras desde la configuración tipada del entorno.
+    // Extracción segura de credenciales maestras
     const host = this.configService.getOrThrow<string>('database.master.host');
     const port = this.configService.getOrThrow<number>('database.master.port');
     const user = this.configService.getOrThrow<string>('database.master.user');
     const password = this.configService.getOrThrow<string>('database.master.password');
 
-    // 3. Construcción segura de la URL de conexión
-    // encodeURIComponent previene fallos de sintaxis si las credenciales contienen caracteres especiales (ej: @, #, :).
+    // Construcción segura de la URL de conexión
     const databaseUrl =
       `postgresql://${encodeURIComponent(user)}:` +
       `${encodeURIComponent(password)}@` +
@@ -57,17 +51,14 @@ export class TenantsService {
     let databaseCreated = false;
 
     try {
-      // 4. Aprovisionamiento Físico: Crea la base de datos vacía en el servidor PostgreSQL.
-      await this.postgresProvisioningService.createDatabase(
-        databaseName,
-      );
+      // Aprovisionamiento Físico
+      await this.postgresProvisioningService.createDatabase(databaseName);
+      databaseCreated = true;
 
-      databaseCreated = true; // Activa la bandera de control de infraestructura física existente.
-
-      // 5. Migración Lógica: Despliega las tablas de negocio en la nueva base de datos.
+      // Migración Lógica
       await this.tenantMigrationService.migrate(databaseUrl);
 
-      // 6. Registro Maestro: Persiste los metadatos del tenant en la Master DB.
+      // Registro Maestro utilizando la proyección segura
       const tenant = await this.prismaService.tenant.create({
         data: {
           name: dto.name,
@@ -79,34 +70,27 @@ export class TenantsService {
           databasePassword: password,
           status: 'ACTIVE',
         },
-        // Proyección de datos (Select): Excluye credenciales sensibles (como la contraseña) 
-        // de la respuesta HTTP final por motivos estrictos de seguridad.
         select: this.getTenantSelect(),
       });
 
       return tenant;
     } catch (error) {
-      // Rollback de Infraestructura: Si la creación física falló, intenta eliminar la base de datos
-        if (databaseCreated) {
+      if (databaseCreated) {
         try {
-          // Si la creación de la base de datos fue exitosa pero ocurrió un error posterior, intenta eliminar la base de datos para evitar recursos huérfanos.
           await this.postgresProvisioningService.dropDatabase(databaseName);
         } catch (rollbackError) {
-          // Registro estructurado del fallo de rollback para análisis interno
           this.logger.error(
-            {
-              err: rollbackError,
-              databaseName,
-            },
+            { err: rollbackError, databaseName },
             'Tenant database rollback failed',
           );
         }
       }
-
       throw error;
     }
   }
 
+
+  //se usa para listar tenants con filtros y paginación, devolviendo metadatos de paginación
   async findAll(query: TenantQueryDto) {
     const page = query.page;
     const limit = query.limit;
@@ -114,20 +98,12 @@ export class TenantsService {
 
     const where: Prisma.TenantWhereInput = {
       ...(query.name && {
-        name: {
-          contains: query.name,
-          mode: 'insensitive' as const,
-        },
+        name: { contains: query.name, mode: 'insensitive' as const },
       }),
       ...(query.slug && {
-        slug: {
-          contains: query.slug,
-          mode: 'insensitive' as const,
-        },
+        slug: { contains: query.slug, mode: 'insensitive' as const },
       }),
-      ...(query.status && {
-        status: query.status,
-      }),
+      ...(query.status && { status: query.status }),
     };
 
     const [tenants, total] = await Promise.all([
@@ -135,14 +111,10 @@ export class TenantsService {
         where,
         skip,
         take: limit,
-        orderBy: {
-          [query.sortBy]: query.order,
-        },
+        orderBy: { [query.sortBy]: query.order },
         select: this.getTenantSelect(),
       }),
-      this.prismaService.tenant.count({
-        where,
-      }),
+      this.prismaService.tenant.count({ where }),
     ]);
 
     return {
@@ -156,11 +128,11 @@ export class TenantsService {
     };
   }
 
+
+  // se usa para obtener un tenant específico por su ID, lanzando una excepción si no se encuentra
   async findOne(id: string) {
     const tenant = await this.prismaService.tenant.findUnique({
-      where: {
-        id,
-      },
+      where: { id },
       select: this.getTenantSelect(),
     });
 
@@ -171,30 +143,24 @@ export class TenantsService {
     return tenant;
   }
 
+
+  // se usa para actualizar el estado de un tenant, primero verificando su existencia y luego actualizando su estado en la base de datos
   async updateStatus(id: string, dto: UpdateTenantStatusDto) {
-    await this.findOne(id); // Reutilizamos findOne para que lance 404 si no existe
+    await this.findOne(id);
 
     const tenant = await this.prismaService.tenant.update({
-      where: {
-        id,
-      },
-      data: {
-        status: dto.status,
-      },
+      where: { id },
+      data: { status: dto.status },
       select: this.getTenantSelect(),
     });
 
-    this.logger.log(
-      { tenantId: id, status: dto.status },
-      'Tenant status updated',
-    );
+    this.logger.log({ tenantId: id, status: dto.status }, 'Tenant status updated');
 
     return tenant;
   }
 
   /**
-   * Centraliza la proyección de datos para omitir credenciales sensibles
-   * en todas las respuestas de los endpoints.
+   * Centraliza la proyección de datos para omitir credenciales sensibles.
    */
   private getTenantSelect() {
     return {
