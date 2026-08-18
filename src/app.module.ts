@@ -13,7 +13,7 @@ import { UsersModule } from './modules/users/users.module';
 import { CustomersModule } from './modules/customers/customers.module';
 import { CourtsModule } from './modules/courts/courts.module';
 import { ReservationsModule } from './modules/reservations/reservations.module';
-
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 /**
  * Módulo raíz de la aplicación.
@@ -32,6 +32,10 @@ import { ReservationsModule } from './modules/reservations/reservations.module';
     
   ),
 
+  EventEmitterModule.forRoot({
+      global: true, // Permite que los eventos se escuchen entre diferentes módulos
+    }),
+
 
     LoggerModule,
     FilterModule,
@@ -46,7 +50,7 @@ import { ReservationsModule } from './modules/reservations/reservations.module';
   ],
 
   controllers: [TenantClientController],
- providers: [TenantGuard],
+  providers: [TenantGuard],
 
 
  

@@ -570,3 +570,45 @@ Authorization: Bearer {{loginAuth.response.body.accessToken}}
 GET {{baseUrl}}/reservations
 X-Tenant-Id: {{otherTenantId}}
 Authorization: Bearer {{loginAuth.response.body.accessToken}}
+
+
+
+### ==========================================
+### MASTER DB - TENANTS CRUD (MASTER-SCOPED)
+### ==========================================
+
+### 1. Create Tenant (Onboarding)
+# @name createNewTenant
+POST {{baseUrl}}/tenants
+Content-Type: application/json
+
+{
+  "name": "Club de Tenis Master",
+  "slug": "club-tenis-master-01"
+}
+
+### 2. List All Tenants (Paginación por defecto)
+GET {{baseUrl}}/tenants?page=1&limit=10
+
+### 3. Filter Tenants by Status
+GET {{baseUrl}}/tenants?status=ACTIVE
+
+### 4. Filter Tenants by Name (Búsqueda parcial)
+GET {{baseUrl}}/tenants?name=Tenis
+
+### 5. Sort Tenants by Slug descendente
+GET {{baseUrl}}/tenants?sortBy=slug&order=desc
+
+### 6. Get Tenant By ID
+GET {{baseUrl}}/tenants/{{createNewTenant.response.body.id}}
+
+### 7. Update Tenant Status (Desactivar cliente)
+PATCH {{baseUrl}}/tenants/{{createNewTenant.response.body.id}}/status
+Content-Type: application/json
+
+{
+  "status": "INACTIVE"
+}
+
+### 8. Verify Tenant was Deactivated
+GET {{baseUrl}}/tenants/{{createNewTenant.response.body.id}}
