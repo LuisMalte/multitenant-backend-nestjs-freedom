@@ -1,10 +1,16 @@
-import {Injectable, ConflictException,} from '@nestjs/common';
+import { Injectable,ConflictException,NotFoundException,} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../../infrastructure/database/prisma.service';
-import { PostgresProvisioningService,TenantMigrationService, } from '../../infrastructure/database';
-import { CreateTenantDto } from './dto/create-tenant.dto';
 import { Logger } from 'nestjs-pino';
 
+import { PrismaService } from '../../infrastructure/database/prisma.service';
+import {PostgresProvisioningService,TenantMigrationService,} from '../../infrastructure/database';
+import { Prisma } from '../../../generated/master/prisma/client';
+
+import {
+  CreateTenantDto,
+  TenantQueryDto,
+  UpdateTenantStatusDto,
+} from './dto';
 
 @Injectable()
 export class TenantsService {
@@ -14,7 +20,6 @@ export class TenantsService {
     private readonly postgresProvisioningService: PostgresProvisioningService,
     private readonly tenantMigrationService: TenantMigrationService,
     private readonly logger: Logger,
-
   ) {}
 
   async create(dto: CreateTenantDto) {
@@ -76,17 +81,7 @@ export class TenantsService {
         },
         // Proyección de datos (Select): Excluye credenciales sensibles (como la contraseña) 
         // de la respuesta HTTP final por motivos estrictos de seguridad.
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          databaseName: true,
-          databaseHost: true,
-          databasePort: true,
-          status: true,
-          createdAt: true,
-          updatedAt: true,
-        },
+        select: this.getTenantSelect(),
       });
 
       return tenant;
@@ -110,5 +105,108 @@ export class TenantsService {
 
       throw error;
     }
+  }
+
+  async findAll(query: TenantQueryDto) {
+    const page = query.page;
+    const limit = query.limit;
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.TenantWhereInput = {
+      ...(query.name && {
+        name: {
+          contains: query.name,
+          mode: 'insensitive' as const,
+        },
+      }),
+      ...(query.slug && {
+        slug: {
+          contains: query.slug,
+          mode: 'insensitive' as const,
+        },
+      }),
+      ...(query.status && {
+        status: query.status,
+      }),
+    };
+
+    const [tenants, total] = await Promise.all([
+      this.prismaService.tenant.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: {
+          [query.sortBy]: query.order,
+        },
+        select: this.getTenantSelect(),
+      }),
+      this.prismaService.tenant.count({
+        where,
+      }),
+    ]);
+
+    return {
+      data: tenants,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async findOne(id: string) {
+    const tenant = await this.prismaService.tenant.findUnique({
+      where: {
+        id,
+      },
+      select: this.getTenantSelect(),
+    });
+
+    if (!tenant) {
+      throw new NotFoundException('Tenant not found');
+    }
+
+    return tenant;
+  }
+
+  async updateStatus(id: string, dto: UpdateTenantStatusDto) {
+    await this.findOne(id); // Reutilizamos findOne para que lance 404 si no existe
+
+    const tenant = await this.prismaService.tenant.update({
+      where: {
+        id,
+      },
+      data: {
+        status: dto.status,
+      },
+      select: this.getTenantSelect(),
+    });
+
+    this.logger.log(
+      { tenantId: id, status: dto.status },
+      'Tenant status updated',
+    );
+
+    return tenant;
+  }
+
+  /**
+   * Centraliza la proyección de datos para omitir credenciales sensibles
+   * en todas las respuestas de los endpoints.
+   */
+  private getTenantSelect() {
+    return {
+      id: true,
+      name: true,
+      slug: true,
+      databaseName: true,
+      databaseHost: true,
+      databasePort: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+    };
   }
 }
