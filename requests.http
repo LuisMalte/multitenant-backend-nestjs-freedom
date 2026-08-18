@@ -667,3 +667,11 @@ Authorization: Bearer {{loginAuth.response.body.accessToken}}
   "customerId": "b171721b-3be0-4aa6-8667-9d4eec76c09a",
   "courtId": "45fbcde8-7256-465a-8ef5-725c10348034"
 }
+
+
+### ==========================================
+### HEALTH CHECK
+### ==========================================
+
+### 1. Verificar el estado de la API y la Master DB
+GET {{baseUrl}}/health

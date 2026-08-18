@@ -15,6 +15,7 @@ import { CourtsModule } from './modules/courts/courts.module';
 import { ReservationsModule } from './modules/reservations/reservations.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { MailModule } from './modules/mail/mail.module';
+import { HealthModule } from './modules/health/health.module';
 
 /**
  * Módulo raíz de la aplicación.
@@ -51,6 +52,8 @@ import { MailModule } from './modules/mail/mail.module';
     CourtsModule, 
     ReservationsModule,
     MailModule,
+    HealthModule
+    
   ],
 
   controllers: [TenantClientController],
