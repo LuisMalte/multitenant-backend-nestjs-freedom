@@ -12,7 +12,7 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import type { Request } from 'express';
-
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { TenantGuard } from '../../common/guards';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CourtQueryDto } from './dto/court-query.dto';
@@ -25,6 +25,8 @@ import { CourtsService } from './courts.service';
  * Expone los endpoints de la API, impone la validación de seguridad (Tenant y Token JWT),
  * intercepta los parámetros HTTP y delega la ejecución de negocio al servicio.
  */
+
+@ApiTags('Courts')
 @Controller('courts')
 @UseGuards(TenantGuard, JwtAuthGuard)
 export class CourtsController {

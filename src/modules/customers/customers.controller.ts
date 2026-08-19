@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { TenantGuard } from '../../common/guards';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CustomerQueryDto } from './dto/customer-query.dto';
@@ -25,6 +26,9 @@ import { CustomersService } from './customers.service';
  * Intercepta las peticiones HTTP entrantes, valida la seguridad (Tenant y JWT),
  * y delega la lógica transaccional al servicio correspondiente.
  */
+
+
+@ApiTags('Customers')
 @Controller('customers')
 @UseGuards(TenantGuard, JwtAuthGuard)
 export class CustomersController {

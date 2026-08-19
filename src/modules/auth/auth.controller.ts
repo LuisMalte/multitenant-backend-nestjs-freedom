@@ -6,7 +6,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { TenantGuard } from '../../common/guards';
 import { LoginDto } from './dto/login.dto';
 import { AuthService } from './auth.service';
@@ -15,6 +15,8 @@ import { AuthService } from './auth.service';
  * Controlador de Autenticación.
  * Gestiona el endpoint de inicio de sesión.
  */
+
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(

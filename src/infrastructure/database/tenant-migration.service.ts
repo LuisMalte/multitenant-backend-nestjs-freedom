@@ -3,26 +3,21 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { Logger } from 'nestjs-pino';
-import { execFile } from 'node:child_process';
+import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import { join } from 'node:path';
 
 // Convierte una función basada en callbacks tradicionales en una basada en Promesas (async/await)
-const execFileAsync = promisify(execFile);
+const execAsync = promisify(exec);
 
 @Injectable()
 export class TenantMigrationService {
   constructor(private readonly logger: Logger) {}
 
   async migrate(databaseUrl: string): Promise<void> {
-    // Localiza dinámicamente el ejecutable de Prisma CLI dentro de node_modules/.bin,
-    // adaptándose automáticamente al sistema operativo (Windows usa .cmd, Linux/macOS no).
-    const prismaCli = join(
-      process.cwd(),
-      'node_modules',
-      '.bin',
-      process.platform === 'win32' ? 'prisma.cmd' : 'prisma',
-    );
+    // Calculamos la ruta exacta a la carpeta del Tenant.
+    // Ahora que el Dockerfile está corregido, esta carpeta sí existirá en producción.
+    const tenantPrismaDir = join(process.cwd(), 'prisma', 'tenant');
 
     try {
       this.logger.log('Applying tenant database migrations');
@@ -30,14 +25,10 @@ export class TenantMigrationService {
       // Ejecuta el comando de terminal de forma asíncrona.
       // Se utiliza 'migrate deploy' para aplicar migraciones existentes de forma determinista,
       // apuntando al archivo de configuración aislado del tenant.
-      await execFileAsync(
-        prismaCli,
-        [
-          'migrate',
-          'deploy',
-          '--config=prisma/tenant/prisma.config.ts',
-        ],
+      const { stdout, stderr } = await execAsync(
+        'npx prisma migrate deploy',
         {
+          cwd: tenantPrismaDir,
           env: {
             ...process.env,
             // Inyecta dinámicamente la URL de la base de datos recién creada 
@@ -49,10 +40,16 @@ export class TenantMigrationService {
         },
       );
 
-      this.logger.log('Tenant database migrations applied successfully');
-    } catch (error) {
+      this.logger.log({ stdout, stderr }, 'Tenant database migrations applied successfully');
+    } catch (error:any) {
+      console.error('🔥 CRITICAL MIGRATION ERROR:', error);
+
       this.logger.error(
-        { err: error },
+        { 
+          err: error.message || error,
+          stdout: error.stdout, 
+          stderr: error.stderr
+        },
         'Failed to apply tenant database migrations',
       );
 

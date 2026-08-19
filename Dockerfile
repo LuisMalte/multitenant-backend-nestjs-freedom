@@ -1,7 +1,7 @@
 # ==========================================
 # ETAPA 1: CONSTRUCCIÓN (BUILDER)
 # ==========================================
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 # Prisma requiere OpenSSL para funcionar correctamente en Alpine Linux
 RUN apk add --no-cache openssl
@@ -28,17 +28,22 @@ RUN npm run build
 # ==========================================
 # ETAPA 2: PRODUCCIÓN (RUNNER)
 # ==========================================
-FROM node:20-alpine AS production
+FROM node:22-alpine AS production
+WORKDIR /app
+
 
 RUN apk add --no-cache openssl
 
-WORKDIR /app
+
 
 # Copiamos solo los manifiestos de dependencias
 COPY package*.json ./
 
 # Instalamos SOLO las dependencias de producción (ignoramos las devDependencies)
 RUN npm ci --omit=dev
+
+# 
+COPY --from=builder /app/prisma ./prisma
 
 # Copiamos la carpeta 'dist' (código compilado) desde la etapa 1
 COPY --from=builder /app/dist ./dist

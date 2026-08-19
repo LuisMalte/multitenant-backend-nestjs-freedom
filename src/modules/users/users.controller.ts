@@ -6,7 +6,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { TenantGuard } from '../../common/guards';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UsersService } from './users.service';
@@ -16,6 +16,9 @@ import { UsersService } from './users.service';
  * Gestiona las peticiones HTTP entrantes para el registro de nuevos usuarios
  * dentro de un tenant específico.
  */
+
+
+@ApiTags('Users')
 @Controller('users')
 export class UsersController {
   constructor(

@@ -6,16 +6,36 @@
 @tenantId = 5872ce18-96bd-49d5-9da9-4368c65149e8
 @otherTenantId = 9c3f7172-d5ef-430d-8c90-d00a19f1b10b
 
+
+### Crear un Nuevo Tenant (Aprovisionamiento automático)
+POST {{baseUrl}}/tenants
+Content-Type: application/json
+
+{
+  "name": "Club Tenis test",
+  "slug": "club-tenis-test"
+}
+
+###
 GET {{baseUrl}}/tenants
 ### ==========================================
 ### 0. AUTHENTICATION
 ### ==========================================
 
+### Crear un Nuevo Tenant (Aprovisionamiento)
+### Crear un Nuevo Tenant (Aprovisionamiento automático)
+POST {{baseUrl}}/tenants
+Content-Type: application/json
+
+{
+  "name": "Club Tenis Luis",
+  "slug": "club-tenis-luis"
+}
 ### Login
 # @name loginAuth
 POST {{baseUrl}}/auth/login
 Content-Type: application/json
-X-Tenant-Id: {{tenantId}}
+X-Tenant-Id: 5872ce18-96bd-49d5-9da9-4368c65149e8
 
 {
   "email": "manual@test.com",

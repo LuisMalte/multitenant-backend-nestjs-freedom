@@ -13,9 +13,13 @@ export function configureScalar(
   document: OpenAPIObject,
 ): void {
   app.use(
-    '/api/docs',
+    '/docs',
     apiReference({
-      content: document,
+      spec: {
+        content: document,
+      },
+      // Opcional: define un tema bonito para tu prueba técnica
+      theme: 'default',
     }),
   );
 }

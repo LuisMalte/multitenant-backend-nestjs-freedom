@@ -5,7 +5,11 @@ import {
   PrismaHealthIndicator,
 } from '@nestjs/terminus';
 import { PrismaService } from '../../infrastructure/database/prisma.service';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
+
+
+@ApiTags('Health')
 @Controller('health')
 export class HealthController {
   constructor(

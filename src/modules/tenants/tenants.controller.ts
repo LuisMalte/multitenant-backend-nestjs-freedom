@@ -9,6 +9,7 @@ import {
   Query,
 } from '@nestjs/common';
 
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import {
   CreateTenantDto,
   TenantQueryDto,
@@ -21,6 +22,8 @@ import { TenantsService } from './tenants.service';
  * Estas rutas operan a nivel de infraestructura (Master DB) y orquestan
  * el ciclo de vida de los clientes del SaaS.
  */
+
+@ApiTags('Tenants')
 @Controller('tenants')
 export class TenantsController {
   constructor(private readonly tenantsService: TenantsService) {}
