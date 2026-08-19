@@ -1,697 +1,213 @@
-### ==========================================
-### CONFIGURATION
-### ==========================================
-
+### ============================================================================
+### VARIABLES GLOBALES Y ENTORNO
+### ============================================================================
 @baseUrl = http://localhost:3000/api/v1
-@tenantId = 5872ce18-96bd-49d5-9da9-4368c65149e8
-@otherTenantId = 9c3f7172-d5ef-430d-8c90-d00a19f1b10b
+
+### ----------------------------------------------------------------------------
+### 1. HEALTH CHECK (Validar que la API y BD Master están vivas)
+### ----------------------------------------------------------------------------
+GET {{baseUrl}}/health
+Accept: application/json
 
 
-### Crear un Nuevo Tenant (Aprovisionamiento automático)
+### ============================================================================
+### SECCIÓN A: INFRAESTRUCTURA Y SEGURIDAD (MASTER DB)
+### ============================================================================
+
+### 2. Crear un Tenant (Aprovisionamiento de BD)
+# @name createTenant
 POST {{baseUrl}}/tenants
 Content-Type: application/json
 
 {
-  "name": "Club Tenis test",
-  "slug": "club-tenis-test"
+  "name": "Club Tenis Elite",
+  "slug": "club-tenis-elite-01"
 }
 
-###
-GET {{baseUrl}}/tenants
-### ==========================================
-### 0. AUTHENTICATION
-### ==========================================
+### -> Capturamos el Tenant ID
+@tenantId = {{createTenant.response.body.id}}
 
-### Crear un Nuevo Tenant (Aprovisionamiento)
-### Crear un Nuevo Tenant (Aprovisionamiento automático)
-POST {{baseUrl}}/tenants
+### 3. Listar todos los Tenants (Prueba de Query DTO)
+GET {{baseUrl}}/tenants?limit=10&page=1&sortBy=createdAt
+Accept: application/json
+
+### 4. Crear el Primer Usuario Administrador en el Tenant
+# @name createUser
+POST {{baseUrl}}/users
 Content-Type: application/json
+X-Tenant-Id: {{tenantId}}
 
 {
-  "name": "Club Tenis Luis",
-  "slug": "club-tenis-luis"
-}
-### Login
-# @name loginAuth
-POST {{baseUrl}}/auth/login
-Content-Type: application/json
-X-Tenant-Id: 5872ce18-96bd-49d5-9da9-4368c65149e8
-
-{
-  "email": "manual@test.com",
+  "name": "Admin Club Elite",
+  "email": "admin@clubelite.com",
   "password": "password123"
 }
 
-
-### ==========================================
-### 1. CUSTOMER CRUD - TEST DATA
-### ==========================================
-
-### Create Customer
-# @name createCustomer
-POST {{baseUrl}}/customers
+### 5. Iniciar Sesión (Generación de JWT)
+# @name login
+POST {{baseUrl}}/auth/login
 Content-Type: application/json
 X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
 
 {
-  "name": "Customer CRUD Test",
-  "email": "customer.crud@test.com",
-  "phone": "3001112233"
+  "email": "admin@clubelite.com",
+  "password": "password123"
 }
 
-
-### List Customers
-GET {{baseUrl}}/customers?page=1&limit=10
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
+### -> Capturamos el Token JWT (Si tu API devuelve 'token' en vez de 'access_token', cámbialo aquí)
+@authToken = {{login.response.body.accessToken}}
 
 
-### Filter Customers
-  GET {{baseUrl}}/customers?name=Customer
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
+### ============================================================================
+### SECCIÓN B: OPERACIONES DE NEGOCIO (TENANT DB)
+### ============================================================================
 
+### ----------------------------------------------------------------------------
+### MÓDULO: CANCHAS (COURTS)
+### ----------------------------------------------------------------------------
 
-### Sort Customers
-GET {{baseUrl}}/customers?sortBy=name&order=asc
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-
-### Get Customer By ID
-GET {{baseUrl}}/customers/{{createCustomer.response.body.id}}
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-
-### Update Customer
-PATCH {{baseUrl}}/customers/{{createCustomer.response.body.id}}
-Content-Type: application/json
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-{
-  "phone": "3229998877"
-}
-
-
-### Verify Customer Update
-GET {{baseUrl}}/customers/{{createCustomer.response.body.id}}
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-
-### Delete Customer
-DELETE {{baseUrl}}/customers/{{createCustomer.response.body.id}}
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-
-### Verify Customer Soft Delete
-GET {{baseUrl}}/customers/{{createCustomer.response.body.id}}
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-
-### ==========================================
-### 2. COURT CRUD - TEST DATA
-### ==========================================
-
-### Create Court
+### 6. Crear una Cancha
 # @name createCourt
 POST {{baseUrl}}/courts
 Content-Type: application/json
 X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
+Authorization: Bearer {{authToken}}
 
 {
-  "name": "Court CRUD Test",
+  "name": "Cancha Central",
   "sport": "Tennis",
-  "pricePerHour": 50000,
+  "pricePerHour": 50.00,
   "status": "AVAILABLE"
 }
 
+### -> Capturamos el ID de la cancha
+@courtId = {{createCourt.response.body.id}}
 
-### List Courts
-GET {{baseUrl}}/courts?page=1&limit=10
+### 7. Listar Canchas (Probando filtros: sport=Tennis)
+GET {{baseUrl}}/courts?sport=Tennis&sortBy=name
 X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
+Authorization: Bearer {{authToken}}
 
-
-### Filter Courts By Sport
-GET {{baseUrl}}/courts?sport=Tennis
+### 8. Obtener Cancha por ID
+GET {{baseUrl}}/courts/{{courtId}}
 X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
+Authorization: Bearer {{authToken}}
 
-
-### Filter Courts By Name
-GET {{baseUrl}}/courts?name=Court
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-
-### Sort Courts By Price
-GET {{baseUrl}}/courts?sortBy=pricePerHour&order=asc
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-
-### Filter Courts By Status
-GET {{baseUrl}}/courts?status=AVAILABLE
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-
-### Get Court By ID
-GET {{baseUrl}}/courts/{{createCourt.response.body.id}}
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-
-### Update Court
-PATCH {{baseUrl}}/courts/{{createCourt.response.body.id}}
+### 9. Actualizar Cancha (Cambio de precio y estado)
+PATCH {{baseUrl}}/courts/{{courtId}}
 Content-Type: application/json
 X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
+Authorization: Bearer {{authToken}}
 
 {
-  "name": "Court CRUD Updated",
-  "pricePerHour": 60000,
+  "pricePerHour": 65.50,
   "status": "MAINTENANCE"
 }
 
 
-### Verify Court Update
-GET {{baseUrl}}/courts/{{createCourt.response.body.id}}
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
+### ----------------------------------------------------------------------------
+### MÓDULO: CLIENTES (CUSTOMERS)
+### ----------------------------------------------------------------------------
 
-
-### Delete Court
-DELETE {{baseUrl}}/courts/{{createCourt.response.body.id}}
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-
-### Verify Court Soft Delete
-GET {{baseUrl}}/courts/{{createCourt.response.body.id}}
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-
-### ==========================================
-### 3. RESERVATION - TEST DATA
-### ==========================================
-
-### Create Reservation Customer
-# @name createResCustomer
+### 10. Crear un Cliente
+# @name createCustomer
 POST {{baseUrl}}/customers
 Content-Type: application/json
 X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
+Authorization: Bearer {{authToken}}
 
 {
-  "name": "Reservation Test Customer",
-  "email": "reservation.customer@test.com",
-  "phone": "3009876543"
+  "name": "Carlos Alcaraz",
+  "email": "carlos@alcaraz.com",
+  "phone": "+34600123456"
 }
 
+### -> Capturamos el ID del cliente
+@customerId = {{createCustomer.response.body.id}}
 
-### Create Reservation Court
-# @name createResCourt
-POST {{baseUrl}}/courts
+### 11. Listar Clientes
+GET {{baseUrl}}/customers?limit=5
+X-Tenant-Id: {{tenantId}}
+Authorization: Bearer {{authToken}}
+
+### 12. Actualizar Cliente (Añadir un nuevo teléfono)
+PATCH {{baseUrl}}/customers/{{customerId}}
 Content-Type: application/json
 X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
+Authorization: Bearer {{authToken}}
 
 {
-  "name": "Reservation Test Court",
-  "sport": "Tennis",
-  "pricePerHour": 50000,
-  "status": "AVAILABLE"
+  "phone": "+34999888777"
 }
 
 
-### ==========================================
-### 4. RESERVATION - DELETED TEST DATA
-### ==========================================
+### ----------------------------------------------------------------------------
+### MÓDULO: RESERVAS (RESERVATIONS)
+### ----------------------------------------------------------------------------
 
-### Create Customer To Delete
-# @name createDeletedCustomer
-POST {{baseUrl}}/customers
-Content-Type: application/json
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-{
-  "name": "Deleted Customer Test",
-  "email": "deleted.customer@test.com",
-  "phone": "3005556677"
-}
-
-
-### Delete Customer
-DELETE {{baseUrl}}/customers/{{createDeletedCustomer.response.body.id}}
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-
-### Create Court To Delete
-# @name createDeletedCourt
-POST {{baseUrl}}/courts
-Content-Type: application/json
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-{
-  "name": "Deleted Court Test",
-  "sport": "Tennis",
-  "pricePerHour": 45000,
-  "status": "AVAILABLE"
-}
-
-
-### Delete Court
-DELETE {{baseUrl}}/courts/{{createDeletedCourt.response.body.id}}
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-
-### ==========================================
-### 5. RESERVATION - TEMPORAL VALIDATION
-### ==========================================
-
-### endTime BEFORE startTime
-# Expected: 400 Bad Request
-POST {{baseUrl}}/reservations
-Content-Type: application/json
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-{
-  "date": "2026-08-20",
-  "startTime": "2026-08-20T15:00:00.000Z",
-  "endTime": "2026-08-20T14:00:00.000Z",
-  "status": "CONFIRMED",
-  "customerId": "{{createResCustomer.response.body.id}}",
-  "courtId": "{{createResCourt.response.body.id}}"
-}
-
-
-### endTime EQUAL startTime
-# Expected: 400 Bad Request
-POST {{baseUrl}}/reservations
-Content-Type: application/json
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-{
-  "date": "2026-08-20",
-  "startTime": "2026-08-20T14:00:00.000Z",
-  "endTime": "2026-08-20T14:00:00.000Z",
-  "status": "CONFIRMED",
-  "customerId": "{{createResCustomer.response.body.id}}",
-  "courtId": "{{createResCourt.response.body.id}}"
-}
-
-
-### ==========================================
-### 6. RESERVATION - CREATE VALID
-### ==========================================
-
-### Create Reservation
+### 13. Crear una Reserva (Vinculando Cliente y Cancha)
 # @name createReservation
 POST {{baseUrl}}/reservations
 Content-Type: application/json
 X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
+Authorization: Bearer {{authToken}}
 
 {
-  "date": "2026-08-20",
-  "startTime": "2026-08-20T14:00:00.000Z",
-  "endTime": "2026-08-20T15:00:00.000Z",
+  "date": "2026-09-01T00:00:00.000Z",
+  "startTime": "2026-09-01T10:00:00.000Z",
+  "endTime": "2026-09-01T12:00:00.000Z",
   "status": "CONFIRMED",
-  "customerId": "{{createResCustomer.response.body.id}}",
-  "courtId": "{{createResCourt.response.body.id}}"
+  "customerId": "{{customerId}}",
+  "courtId": "{{courtId}}"
 }
 
+### -> Capturamos el ID de la reserva
+@reservationId = {{createReservation.response.body.id}}
 
-### ==========================================
-### 7. RESERVATION - RELATION VALIDATION
-### ==========================================
-
-### Invalid Customer
-# Expected: 404 Customer not found
-POST {{baseUrl}}/reservations
-Content-Type: application/json
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-{
-  "date": "2026-08-21",
-  "startTime": "2026-08-21T10:00:00.000Z",
-  "endTime": "2026-08-21T11:00:00.000Z",
-  "status": "CONFIRMED",
-  "customerId": "00000000-0000-0000-0000-000000000000",
-  "courtId": "{{createResCourt.response.body.id}}"
-}
-
-
-### Invalid Court
-# Expected: 404 Court not found
-POST {{baseUrl}}/reservations
-Content-Type: application/json
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-{
-  "date": "2026-08-21",
-  "startTime": "2026-08-21T10:00:00.000Z",
-  "endTime": "2026-08-21T11:00:00.000Z",
-  "status": "CONFIRMED",
-  "customerId": "{{createResCustomer.response.body.id}}",
-  "courtId": "00000000-0000-0000-0000-000000000000"
-}
-
-
-### Soft Deleted Customer
-# Expected: 404 Customer not found
-POST {{baseUrl}}/reservations
-Content-Type: application/json
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-{
-  "date": "2026-08-21",
-  "startTime": "2026-08-21T10:00:00.000Z",
-  "endTime": "2026-08-21T11:00:00.000Z",
-  "status": "CONFIRMED",
-  "customerId": "{{createDeletedCustomer.response.body.id}}",
-  "courtId": "{{createResCourt.response.body.id}}"
-}
-
-
-### Soft Deleted Court
-# Expected: 404 Court not found
-POST {{baseUrl}}/reservations
-Content-Type: application/json
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-{
-  "date": "2026-08-21",
-  "startTime": "2026-08-21T10:00:00.000Z",
-  "endTime": "2026-08-21T11:00:00.000Z",
-  "status": "CONFIRMED",
-  "customerId": "{{createResCustomer.response.body.id}}",
-  "courtId": "{{createDeletedCourt.response.body.id}}"
-}
-
-
-### ==========================================
-### 8. RESERVATION - READ
-### ==========================================
-
-### List Reservations
-GET {{baseUrl}}/reservations?page=1&limit=10
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-
-### Filter By Date
-GET {{baseUrl}}/reservations?date=2026-08-20
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-
-### Filter By Customer
-GET {{baseUrl}}/reservations?customerId={{createResCustomer.response.body.id}}
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-
-### Filter By Court
-GET {{baseUrl}}/reservations?courtId={{createResCourt.response.body.id}}
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-
-### Filter By Status
+### 14. Listar Reservas (Filtrando por estado CONFIRMED)
 GET {{baseUrl}}/reservations?status=CONFIRMED
 X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
+Authorization: Bearer {{authToken}}
 
-
-### Sort By Start Time
-GET {{baseUrl}}/reservations?sortBy=startTime&order=asc
+### 15. Obtener Reserva por ID
+GET {{baseUrl}}/reservations/{{reservationId}}
 X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
+Authorization: Bearer {{authToken}}
 
-
-### Get Reservation By ID
-GET {{baseUrl}}/reservations/{{createReservation.response.body.id}}
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-
-### ==========================================
-### 9. RESERVATION - UPDATE
-### ==========================================
-
-### Update Status
-PATCH {{baseUrl}}/reservations/{{createReservation.response.body.id}}
+### 16. Actualizar Reserva (Cambiar estado a CANCELLED)
+PATCH {{baseUrl}}/reservations/{{reservationId}}
 Content-Type: application/json
 X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
+Authorization: Bearer {{authToken}}
 
 {
-  "status": "COMPLETED"
+  "status": "CANCELLED"
 }
 
 
-### Update Start Time - Valid
-PATCH {{baseUrl}}/reservations/{{createReservation.response.body.id}}
-Content-Type: application/json
+### ============================================================================
+### SECCIÓN C: FLUJO DE ELIMINACIÓN (CLEANUP)
+### ============================================================================
+
+### 17. Eliminar la Reserva
+DELETE {{baseUrl}}/reservations/{{reservationId}}
 X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
+Authorization: Bearer {{authToken}}
 
-{
-  "startTime": "2026-08-20T14:30:00.000Z"
-}
-
-
-### Update Start Time - Invalid
-# Expected: 400 Bad Request
-PATCH {{baseUrl}}/reservations/{{createReservation.response.body.id}}
-Content-Type: application/json
+### 18. Eliminar el Cliente
+DELETE {{baseUrl}}/customers/{{customerId}}
 X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
+Authorization: Bearer {{authToken}}
 
-{
-  "startTime": "2026-08-20T16:00:00.000Z"
-}
-
-
-### Update End Time - Invalid
-# Expected: 400 Bad Request
-PATCH {{baseUrl}}/reservations/{{createReservation.response.body.id}}
-Content-Type: application/json
+### 19. Eliminar la Cancha
+DELETE {{baseUrl}}/courts/{{courtId}}
 X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
+Authorization: Bearer {{authToken}}
 
-{
-  "endTime": "2026-08-20T13:00:00.000Z"
-}
-
-
-### ==========================================
-### 10. RESERVATION - SOFT DELETE
-### ==========================================
-
-### Delete Reservation
-DELETE {{baseUrl}}/reservations/{{createReservation.response.body.id}}
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-
-### Verify Reservation Is Not Listed
-GET {{baseUrl}}/reservations?page=1&limit=10
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-
-### Verify Deleted Reservation
-# Expected: 404 Reservation not found
-GET {{baseUrl}}/reservations/{{createReservation.response.body.id}}
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-
-### ==========================================
-### 11. VALIDATION
-### ==========================================
-
-### Invalid DTO
-# Expected: 400 Bad Request
-POST {{baseUrl}}/reservations
-Content-Type: application/json
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-{
-  "date": "invalid",
-  "startTime": "invalid",
-  "endTime": "invalid",
-  "status": "",
-  "customerId": "invalid",
-  "courtId": "invalid"
-}
-
-
-### Forbidden Field
-# Expected: 400 Bad Request
-POST {{baseUrl}}/reservations
-Content-Type: application/json
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-{
-  "date": "2026-08-20",
-  "startTime": "2026-08-20T14:00:00.000Z",
-  "endTime": "2026-08-20T15:00:00.000Z",
-  "status": "CONFIRMED",
-  "customerId": "{{createResCustomer.response.body.id}}",
-  "courtId": "{{createResCourt.response.body.id}}",
-  "createdBy": "fake-user"
-}
-
-
-### Invalid Pagination
-# Expected: 400 Bad Request
-GET {{baseUrl}}/reservations?page=0&limit=101
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-
-### Invalid Sort
-# Expected: 400 Bad Request
-GET {{baseUrl}}/reservations?sortBy=password&order=asc
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-
-### ==========================================
-### 12. TENANT ISOLATION
-### ==========================================
-
-### Cross Tenant Access
-# Expected: 401 Unauthorized - JWT tenant mismatch
-GET {{baseUrl}}/reservations
-X-Tenant-Id: {{otherTenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-
-
-### ==========================================
-### MASTER DB - TENANTS CRUD (MASTER-SCOPED)
-### ==========================================
-
-### 1. Create Tenant (Onboarding)
-# @name createNewTenant
-POST {{baseUrl}}/tenants
-Content-Type: application/json
-
-{
-  "name": "Club de Tenis Master",
-  "slug": "club-tenis-master-01"
-}
-
-### 2. List All Tenants (Paginación por defecto)
-GET {{baseUrl}}/tenants?page=1&limit=10
-
-### 3. Filter Tenants by Status
-GET {{baseUrl}}/tenants?status=ACTIVE
-
-### 4. Filter Tenants by Name (Búsqueda parcial)
-GET {{baseUrl}}/tenants?name=Tenis
-
-### 5. Sort Tenants by Slug descendente
-GET {{baseUrl}}/tenants?sortBy=slug&order=desc
-
-### 6. Get Tenant By ID
-GET {{baseUrl}}/tenants/{{createNewTenant.response.body.id}}
-
-### 7. Update Tenant Status (Desactivar cliente)
-PATCH {{baseUrl}}/tenants/{{createNewTenant.response.body.id}}/status
+### 20. Suspender el Tenant (Master DB - Cambio de Estado)
+PATCH {{baseUrl}}/tenants/{{tenantId}}/status
 Content-Type: application/json
 
 {
   "status": "INACTIVE"
 }
-
-### 8. Verify Tenant was Deactivated
-GET {{baseUrl}}/tenants/{{createNewTenant.response.body.id}}
-
-
-
-
-### ==========================================
-### TEST: EVENT-DRIVEN ARCHITECTURE (RESEND)
-### ==========================================
-
-
-### 1. Crear el Cliente destino (PON TU CORREO REAL AQUÍ)
-# @name createCustomerForEmail
-POST {{baseUrl}}/customers
-X-Tenant-Id: {{tenantId}}
-Authorization:  Bearer {{loginAuth.response.body.accessToken}}
-Content-Type: application/json
-
-{
-  "name": "Luis Resend Test2",
-  "email": "lcmalte99839@umanizales.edu.co", 
-  "phone": "+573001234567"
-}
-
-### 2. Crear una Cancha rápida (Necesaria para la reserva)
-
-
-### Create Reservation Court
-# @name createResCourtEmail
-POST {{baseUrl}}/courts
-Content-Type: application/json
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-{
-  "name": "Rang Court for Email Test  ",
-  "sport": "Tennis",
-  "pricePerHour": 50000,
-  "status": "AVAILABLE"
-}
-
-
-### 3. Crear la Reserva (¡ESTO DISPARA EL EVENTO Y EL CORREO!)
-# @name createReservation
-POST {{baseUrl}}/reservations
-Content-Type: application/json
-X-Tenant-Id: {{tenantId}}
-Authorization: Bearer {{loginAuth.response.body.accessToken}}
-
-{
-  "date": "2026-08-20",
-  "startTime": "2026-08-20T16:00:00.000Z",
-  "endTime": "2026-08-20T17:00:00.000Z",
-  "status": "CONFIRMED",
-  "customerId": "b171721b-3be0-4aa6-8667-9d4eec76c09a",
-  "courtId": "45fbcde8-7256-465a-8ef5-725c10348034"
-}
-
-
-### ==========================================
-### HEALTH CHECK
-### ==========================================
-
-### 1. Verificar el estado de la API y la Master DB
-GET {{baseUrl}}/health
